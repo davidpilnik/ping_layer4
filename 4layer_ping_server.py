@@ -9,15 +9,9 @@ if client succsess to connect to probing port, its mean ping success, other, not
 """
 import socket
 import sys
-import threading
+# import threading
 PORT_LISTEN = 5006
 ADDRESS_LISTEN = 'localhost'
-
-
-FLAG_THREAD = 0
-# 0 still no change
-# 1 success probe
-# 2 fail testing probe
 
 
 def create_socket_and_bind(ip_addr, port):
@@ -35,7 +29,6 @@ def create_socket_and_bind(ip_addr, port):
 
 
 def main():
-    global FLAG_THREAD
     # create welcome socket
     sock_wel = create_socket_and_bind(ADDRESS_LISTEN, PORT_LISTEN)
     sock_wel.listen(100)
