@@ -55,6 +55,8 @@ def main():
         # ===========================
         sock_probe = create_socket_and_connect(IP_DEST_SERVER, PROBING_PORT)
         # todo check sock probe failures
+        print "succes probing port: %s" % PROBING_PORT
+
 
     finally:
         print "closing socket"

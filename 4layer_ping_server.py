@@ -34,26 +34,6 @@ def create_socket_and_bind(ip_addr, port):
     return sock
 
 
-def listen_probe_port(port_probe):
-
-    global FLAG_THREAD
-    print "creating socket in thread for probing port"
-    sock_probe = create_socket_and_bind(ADDRESS_LISTEN, port_probe)
-    # todo if socket probe not create because problem need to send error msg to client
-
-    sock_probe.listen(100)
-    FLAG_THREAD = 1
-
-    connection, client_address = sock_probe.accept()
-
-    if connection:
-        print "accept probe sock: client_addr %s" % str(client_address)
-        print "probing port %s success" % str(port_probe)
-        sock_probe.close()
-    else:
-        print "TODO!"
-
-
 def main():
     global FLAG_THREAD
     # create welcome socket
@@ -74,27 +54,36 @@ def main():
             data = connection.recv(1000)
             print 'received data: "%s"' % data
             print("try to listen to probing port")
-            data = int(data)
+            port_probe = int(data)
 
             # =========================================
             #  create listener on port probing
-            #  report status of connection on port probing
             # =========================================
-            threading.Thread(target=listen_probe_port, args=(data,)).start()
-            if data != 0:
-                print "sending msg to client about probing port status .."
 
-                while True:
-                    # this while is sampling the thread to know is socket_probe is in listen/error, etc
-                    print("success to listen probing port")
-                    # 1 mean that second listener is waiting
-                    if FLAG_THREAD == 1:
-                        connection.sendall("success to listen probing port")
-                        # TODO maybe add join to here
-                        break
+            sock_probe = create_socket_and_bind(ADDRESS_LISTEN, port_probe)
+            # todo if socket probe not create because problem need to send error msg to client
 
-                    if FLAG_THREAD == 2:
-                        pass
+            sock_probe.listen(100)
+
+            # ============================================
+            # ack client that probe socket listen
+            # ============================================
+            print "sending msg to client that probe_port on listen"
+            connection.sendall("success to listen probing port")
+
+            # ===============================
+            # wait client connection &
+            # report connection status
+            # ================================
+            conne_probe, client_address_probe = sock_probe.accept()
+            if conne_probe:
+                print "accept probe sock: client_addr %s" % str(client_address)
+                print "probing port %s success" % str(port_probe)
+                sock_probe.close()
+            else:
+                # case when not success to probe
+                print "error: connection to probe port FAIL"
+                print "TODO!"
 
 
 if __name__ == '__main__':
