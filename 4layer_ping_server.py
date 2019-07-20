@@ -12,10 +12,10 @@ import time
 import sys
 import argparse
 import errno
-# import threading
-# PORT_LISTEN = 5001
-# ADDRESS_LISTEN = 'localhost'
+
+EXPECTED_DATA_LEN = 1024
 DEBUG = True
+
 
 def log(v):
     if DEBUG:
@@ -32,7 +32,7 @@ def add_args():
 
 
 def parser_data(data):
-    # TODO casew parser fail
+    # TODO case parser fail
     data = data.split('#')
     return data[0], data[1], data[2], data[3]
 
@@ -65,6 +65,8 @@ def loop_reply_ping(conne_probe, size_probe, protocol_probe, client_address):
         except IOError as e:
             if e.errno == errno.EPIPE:
                 pass
+
+
 def create_socket_and_bind(ip_addr, port, protocol='tcp', timeout=None):
     """
     At start function try to create socket accoding params, if fail: exit code.
@@ -126,9 +128,9 @@ def run(server_addr, server_port):
 
     while True:
         try:
-            # ===================================
+            # =====================================
             # Welcome socket wait for a connection
-            # ===================================
+            # =====================================
             print "Server listen on ip: " + str(server_addr) + ", port: " + str(server_port)
             connection, client_address = sock_wel.accept()
 
@@ -136,7 +138,7 @@ def run(server_addr, server_port):
                 # ============================================
                 # receive [port, protocol, timeout] for  probing
                 # ============================================
-                data = connection.recv(1024)
+                data = connection.recv(EXPECTED_DATA_LEN)
                 port_probe, protocol_probe, size_probe, timeout_probe = parser_data(data)
                 print "Data recv: port_probe: %s protocol_probe %s size_probe %s timeout_probe %s " \
                       % (port_probe, protocol_probe, size_probe, timeout_probe)
@@ -220,6 +222,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-# while True:
-#     time.sleep(1)

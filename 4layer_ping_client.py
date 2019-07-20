@@ -13,16 +13,11 @@ import sys
 import argparse
 import time
 
-EXPECTED_DATA_LEN = 100
+# standart len for ack msg
+EXPECTED_DATA_LEN = 1024
 MSG_SERVER_READY = '9999'
 MSG_UDP_CLIENT = '8888'
-# PORT_SERVER = 5001
-# PROBING_PORT = 6006
-# IP_DEST_SERVER = 'localhost'
-# PING_TIMEOUT = 10
-# PING_PACKET_SIZE = 10
-# PING_PROTOCOL = 'tcp'
-CLIENT_UDP_IP_PORT = ('localhost', 60000)
+
 DEBUG = True
 
 
@@ -45,7 +40,7 @@ def add_args():
     return parser
 
 
-def create_socket_and_connect(ip_addr, port, timeout=30, protocol='tcp'):
+def create_socket_and_connect(ip_addr, port, timeout=30, protocol='tcp', packet_size=None):
     sock = None
     try:
         if protocol == 'tcp':
@@ -67,12 +62,10 @@ def create_socket_and_connect(ip_addr, port, timeout=30, protocol='tcp'):
             sock.connect(server_address)
         elif protocol == 'udp':
             # send msg=8888 and recv from server for make udp more reliable.
-            # todo set my ip and port not hard coded
-            sock.bind(CLIENT_UDP_IP_PORT)
+            sock.bind(('', 0))
             sock.connect(server_address)
-            # sock.sendto(MSG_UDP_CLIENT, server_address)
             sock.send(MSG_UDP_CLIENT)
-            data_udp_from_server = sock.recv(EXPECTED_DATA_LEN)
+            data_udp_from_server = sock.recv(packet_size)
 
             # udp test for reliabilty
             if int(data_udp_from_server) != int(MSG_UDP_CLIENT):
@@ -126,7 +119,6 @@ def run(server_addr, server_port, ping_port, ping_protocol, ping_timeout, ping_p
         message = str(ping_port) + '#' + str(ping_protocol) + '#' + str(ping_packet_size) + '#' + str(ping_timeout)
         print "Sending %s .." % message
 
-        # sock.sendall(message)
         sock.send(message)
         # =======================
         # wait server reponse
@@ -152,7 +144,7 @@ def run(server_addr, server_port, ping_port, ping_protocol, ping_timeout, ping_p
     # ===========================
     # connecting to probing port
     # ===========================
-    res_conn_probe = create_socket_and_connect(server_addr, ping_port, 200, ping_protocol)
+    res_conn_probe = create_socket_and_connect(server_addr, ping_port, 200, ping_protocol, ping_packet_size)
 
     if isinstance(res_conn_probe, socket._socketobject):
         print "SUCCESS! probing port: %s, protocol: %s \n" % (ping_port, ping_protocol)
