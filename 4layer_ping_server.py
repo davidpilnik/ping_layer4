@@ -22,7 +22,8 @@ def log(v):
 
 
 def add_args():
-    parser = argparse.ArgumentParser(description='ping layer4 server',
+    parser = argparse.ArgumentParser(description='ping layer4 server, '
+                                                 'python 4layer_ping_server.py --server_addr 192.168.1.174 --server_port 5003',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--server_addr', type=str, default='localhost', help="server listener address")
     parser.add_argument('--server_port', type=int, default=5001, help="port server")

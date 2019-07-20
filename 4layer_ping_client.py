@@ -32,7 +32,9 @@ def log(v):
 
 
 def add_args():
-    parser = argparse.ArgumentParser(description='ping layer4 by probing port',
+    parser = argparse.ArgumentParser(description='ping layer4 by probing port'
+                                                 'Run example: python 4layer_ping_client.py --server_addr 192.168.1.174'
+                                                 ' --server_port 5003 --port_probe 6666 --protocol tcp',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--server_addr', type=str, default='localhost', help="server listener address")
     parser.add_argument('--server_port', type=int, default=5001, help="port server")
