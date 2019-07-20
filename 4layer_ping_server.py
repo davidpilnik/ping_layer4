@@ -11,6 +11,7 @@ import socket
 import time
 import sys
 import argparse
+import errno
 # import threading
 # PORT_LISTEN = 5001
 # ADDRESS_LISTEN = 'localhost'
@@ -36,6 +37,34 @@ def parser_data(data):
     return data[0], data[1], data[2], data[3]
 
 
+def loop_reply_ping(conne_probe, size_probe, protocol_probe, client_address):
+    data_ping = '0' * int(size_probe)
+    seq = 0
+    while True:
+        try:
+
+            pre_time = time.time()
+
+            stopper = conne_probe.recv(int(size_probe))
+            conne_probe.send(data_ping)
+
+            curr_time = time.time()
+
+            time_ping = curr_time - pre_time
+            print "reply: %s bytes from %s:%s %s seq=%s time=%s ms" % (size_probe, client_address[0], client_address[1], protocol_probe, seq, time_ping)
+
+            time.sleep(1)
+            seq = seq + 1
+
+            if stopper == 'stop':
+                break
+        except socket.error as err:
+            print "[ERROR] socket failed with error %s" % err
+            exit(-1)
+
+        except IOError as e:
+            if e.errno == errno.EPIPE:
+                pass
 def create_socket_and_bind(ip_addr, port, protocol='tcp', timeout=None):
     """
     At start function try to create socket accoding params, if fail: exit code.
@@ -107,7 +136,7 @@ def run(server_addr, server_port):
                 # ============================================
                 # receive [port, protocol, timeout] for  probing
                 # ============================================
-                data = connection.recv(1000)
+                data = connection.recv(1024)
                 port_probe, protocol_probe, size_probe, timeout_probe = parser_data(data)
                 print "Data recv: port_probe: %s protocol_probe %s size_probe %s timeout_probe %s " \
                       % (port_probe, protocol_probe, size_probe, timeout_probe)
@@ -138,17 +167,24 @@ def run(server_addr, server_port):
                         if conne_probe:
                             log("Accept probe_sock from client_addr: %s" % str(client_address))
                             print "SUCCESS! probing port: %s, protocol: %s" % (str(port_probe), str(protocol_probe))
+
+                            loop_reply_ping(conne_probe, size_probe, protocol_probe, client_address)
                             sock_probe.close()
                         else:
                             # case when not success to probe
                             print "[ERROR]: connection to probe port FAIL"
 
                     elif protocol_probe == 'udp':
-                        udp_data , udp_client_addr= sock_probe.recvfrom(int(size_probe))
+                        udp_data, udp_client_addr = sock_probe.recvfrom(int(size_probe))
+                        sock_probe.connect(udp_client_addr)
+
                         print "SUCCESS! probing port %s , protocol %s" % (str(port_probe), str(protocol_probe))
                         log("Sending \'udp ack\' to client")
-                        sock_probe.sendto(udp_data, udp_client_addr)
-                        pass
+                        sock_probe.send(udp_data)
+
+                        loop_reply_ping(sock_probe, size_probe, protocol_probe, udp_client_addr)
+                        sock_probe.close()
+
                 else:
                     # case socket probe FAIL
                     print "Sending error msg to client that probe_port FAIL!"
@@ -162,6 +198,7 @@ def run(server_addr, server_port):
 
             if isinstance(sock_probe, socket._socketobject):
                 sock_probe.close()
+
             if not isinstance(sock_wel, socket._socketobject):
                 # create welcome socket
                 sock_wel = create_socket_and_bind(server_port, server_port)

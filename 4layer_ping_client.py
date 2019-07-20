@@ -11,7 +11,7 @@ and finally the client will connect.
 import socket
 import sys
 import argparse
-
+import time
 
 EXPECTED_DATA_LEN = 100
 MSG_SERVER_READY = '9999'
@@ -69,7 +69,9 @@ def create_socket_and_connect(ip_addr, port, timeout=30, protocol='tcp'):
             # send msg=8888 and recv from server for make udp more reliable.
             # todo set my ip and port not hard coded
             sock.bind(CLIENT_UDP_IP_PORT)
-            sock.sendto(MSG_UDP_CLIENT, server_address)
+            sock.connect(server_address)
+            # sock.sendto(MSG_UDP_CLIENT, server_address)
+            sock.send(MSG_UDP_CLIENT)
             data_udp_from_server = sock.recv(EXPECTED_DATA_LEN)
 
             # udp test for reliabilty
@@ -87,12 +89,32 @@ def create_socket_and_connect(ip_addr, port, timeout=30, protocol='tcp'):
     return sock
 
 
+def ping_loop(res_conn_probe, server_addr, ping_port, ping_protocol, ping_timeout, ping_packet_size):
+    data = '0' * ping_packet_size
+    timeout = time.time() + int(ping_timeout)
+    seq = 0
+    while True:
+        pre_time = time.time()
+        res_conn_probe.send(data)
+        res_conn_probe.recv(ping_packet_size)
+        curr_time = time.time()
+
+        time_ping = curr_time - pre_time
+        print "%s bytes from %s:%s %s seq=%s time=%s ms" % (
+        ping_packet_size, server_addr, ping_port, ping_protocol, seq, time_ping)
+        if curr_time > timeout:
+            break
+        time.sleep(1)
+        seq = seq + 1
+
+    res_conn_probe.send("stop")
+
+
 def run(server_addr, server_port, ping_port, ping_protocol, ping_timeout, ping_packet_size):
 
     # ========================
     # connect to server
     # ========================
-    res_conn_probe = None
     sock = create_socket_and_connect(server_addr, server_port, ping_timeout)
     if not isinstance(sock, socket._socketobject):
         exit(-1)
@@ -104,8 +126,8 @@ def run(server_addr, server_port, ping_port, ping_protocol, ping_timeout, ping_p
         message = str(ping_port) + '#' + str(ping_protocol) + '#' + str(ping_packet_size) + '#' + str(ping_timeout)
         print "Sending %s .." % message
 
-        sock.sendall(message)
-
+        # sock.sendall(message)
+        sock.send(message)
         # =======================
         # wait server reponse
         # =======================
@@ -130,10 +152,12 @@ def run(server_addr, server_port, ping_port, ping_protocol, ping_timeout, ping_p
     # ===========================
     # connecting to probing port
     # ===========================
-    res_conn_probe = create_socket_and_connect(server_addr, ping_port, ping_timeout, ping_protocol)
+    res_conn_probe = create_socket_and_connect(server_addr, ping_port, 200, ping_protocol)
 
     if isinstance(res_conn_probe, socket._socketobject):
         print "SUCCESS! probing port: %s, protocol: %s \n" % (ping_port, ping_protocol)
+        ping_loop(res_conn_probe, server_addr, ping_port, ping_protocol, ping_timeout, ping_packet_size)
+
         log("Closing probe socket ..")
         res_conn_probe.close()
     else:
